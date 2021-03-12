@@ -7,6 +7,11 @@ yum install socat #通过80端口生成证书的依赖 #centos7系统
  ​
  apt-get install openssl cron socat curl   #debian系统
  apt-get -y install netcat   #debian系统
+ 
+ 若安装不上证书，手动改安装acme.sh   
+ curl  https://get.acme.sh | sh
+ 若此命令不成功可先尝试安装：apt-get install socat
+ 安装好后执行证书安装命令
  ​
  安装成功后执行 source ~/.bashrc 以确保脚本所设置的命令别名生效   
 ```
