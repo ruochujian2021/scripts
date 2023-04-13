@@ -12,7 +12,7 @@ export MTG_CONFIG="${MTG_CONFIG:-$HOME/.config/mtg}"
 export MTG_ENV="$MTG_CONFIG/env"
 export MTG_SECRET="$MTG_CONFIG/secret"
 export MTG_CONTAINER="${MTG_CONTAINER:-mtg}"
-export MTG_IMAGENAME="${MTG_IMAGENAME:-nineseconds/mtg:stable}"
+export MTG_IMAGENAME="${MTG_IMAGENAME:-nineseconds/mtg:1}"
 
 DOCKER_CMD="$(command -v docker)"
 OSNAME=`hostnamectl | grep -i system | cut -d: -f2`
@@ -131,7 +131,7 @@ installDocker() {
 			curl \
 			gnupg-agent \
 			software-properties-common
-        curl -fsSL https://download.docker.com/linux/$OS/gpg | sudo apt-key add -
+        curl -fsSL https://download.docker.com/linux/$OS/gpg | apt-key add -
         add-apt-repository \
             "deb [arch=amd64] https://download.docker.com/linux/$OS \
             $(lsb_release -cs) \

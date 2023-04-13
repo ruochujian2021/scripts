@@ -41,7 +41,7 @@ https://www.wenshulou.cc/
 http://www.55shuba.com/
 http://www.39shubao.com/
 https://www.23xsw.cc/
-https://www.huanbige.com/
+#https://www.huanbige.com/
 https://www.jueshitangmen.info/
 https://www.zhetian.org/
 http://www.bequgexs.com/
@@ -251,7 +251,7 @@ getData() {
         echo ""
         while true
         do
-            read -p " 请输入伪装路径，以/开头：" WSPATH
+            read -p " 请输入伪装路径，以/开头(不懂请直接回车)：" WSPATH
             if [[ -z "${WSPATH}" ]]; then
                 len=`shuf -i5-12 -n1`
                 ws=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w $len | head -n 1`
@@ -274,11 +274,11 @@ getData() {
     echo "   1) 静态网站(位于/usr/share/nginx/html)"
     echo "   2) 小说站(随机选择)"
     echo "   3) 美女站(https://imeizi.me)"
-    echo "   4) VPS优惠博客(https://www.lowendtalk.com)"
+    echo "   4) 高清壁纸站(https://bing.imeizi.me)"
     echo "   5) 自定义反代站点(需以http或者https开头)"
-    read -p "  请选择伪装网站类型[默认:美女站]" answer
+    read -p "  请选择伪装网站类型[默认:高清壁纸站]" answer
     if [[ -z "$answer" ]]; then
-        PROXY_URL="https://imeizi.me"
+        PROXY_URL="https://bing.imeizi.me"
     else
         case $answer in
         1)
@@ -304,7 +304,7 @@ getData() {
             PROXY_URL="https://imeizi.me"
             ;;
         4)
-            PROXY_URL="https://www.lowendtalk.com"
+            PROXY_URL="https://bing.imeizi.me"
             ;;
         5)
             read -p " 请输入反代站点(以http或者https开头)：" PROXY_URL
@@ -352,9 +352,22 @@ installNginx() {
     colorEcho $BLUE " 安装nginx..."
     if [[ "$BT" = "false" ]]; then
         if [[ "$PMT" = "yum" ]]; then
-            $CMD_INSTALL epel-release 
+            $CMD_INSTALL epel-release
+            if [[ "$?" != "0" ]]; then
+                echo '[nginx-stable]
+name=nginx stable repo
+baseurl=http://nginx.org/packages/centos/$releasever/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=https://nginx.org/keys/nginx_signing.key
+module_hotfixes=true' > /etc/yum.repos.d/nginx.repo
+            fi
         fi
         $CMD_INSTALL nginx
+        if [[ "$?" != "0" ]]; then
+            colorEcho $RED " Nginx安装失败，请到 https://hijk.art 反馈"
+            exit 1
+        fi
         systemctl enable nginx
     else
         res=`which nginx 2>/dev/null`
@@ -408,21 +421,22 @@ getCert() {
             systemctl start cron
             systemctl enable cron
         fi
-        curl -sL https://get.acme.sh | sh
+        curl -sL https://get.acme.sh | sh -s email=hijk.pw@protonmail.ch
         source ~/.bashrc
         ~/.acme.sh/acme.sh  --upgrade  --auto-upgrade
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
         if [[ "$BT" = "false" ]]; then
-            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --pre-hook "systemctl stop nginx" --post-hook "systemctl restart nginx"  --standalone
+            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --keylength ec-256 --pre-hook "systemctl stop nginx" --post-hook "systemctl restart nginx"  --standalone
         else
-            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --pre-hook "nginx -s stop || { echo -n ''; }" --post-hook "nginx -c /www/server/nginx/conf/nginx.conf || { echo -n ''; }"  --standalone
+            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --keylength ec-256 --pre-hook "nginx -s stop || { echo -n ''; }" --post-hook "nginx -c /www/server/nginx/conf/nginx.conf || { echo -n ''; }"  --standalone
         fi
-        [[ -f ~/.acme.sh/$DOMAIN/ca.cer ]] || {
+        [[ -f ~/.acme.sh/${DOMAIN}_ecc/ca.cer ]] || {
             colorEcho $RED " 获取证书失败，请复制上面的红色文字到 https://hijk.art 反馈"
             exit 1
         }
         CERT_FILE="/etc/trojan-go/${DOMAIN}.pem"
         KEY_FILE="/etc/trojan-go/${DOMAIN}.key"
-        ~/.acme.sh/acme.sh  --install-cert -d $DOMAIN \
+        ~/.acme.sh/acme.sh  --install-cert -d $DOMAIN --ecc \
             --key-file       $KEY_FILE  \
             --fullchain-file $CERT_FILE \
             --reloadcmd     "service nginx force-reload"
@@ -888,7 +902,7 @@ showInfo() {
     echo -e " ${BLUE}trojan-go配置文件: ${PLAIN} ${RED}${CONFIG_FILE}${PLAIN}"
     echo -e " ${BLUE}trojan-go配置信息：${PLAIN}"
     echo -e "   IP：${RED}$IP${PLAIN}"
-    echo -e "   伪装域名/主机名(host)：${RED}$domain${PLAIN}"
+    echo -e "   伪装域名/主机名(host)/SNI/peer名称：${RED}$domain${PLAIN}"
     echo -e "   端口(port)：${RED}$port${PLAIN}"
     echo -e "   密码(password)：${RED}$password${PLAIN}"
     if [[ $ws = "true" ]]; then

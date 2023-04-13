@@ -162,6 +162,9 @@ normalizeVersion() {
             v*)
                 echo "$1"
             ;;
+            http*)
+                echo "v1.4.2"
+            ;;
             *)
                 echo "v$1"
             ;;
@@ -380,7 +383,7 @@ getData() {
         echo ""
         while true
         do
-            read -p " 请输入伪装路径，以/开头：" WSPATH
+            read -p " 请输入伪装路径，以/开头(不懂请直接回车)：" WSPATH
             if [[ -z "${WSPATH}" ]]; then
                 len=`shuf -i5-12 -n1`
                 ws=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w $len | head -n 1`
@@ -403,11 +406,11 @@ getData() {
         echo "   1) 静态网站(位于/usr/share/nginx/html)"
         echo "   2) 小说站(随机选择)"
         echo "   3) 美女站(https://imeizi.me)"
-        echo "   4) VPS优惠博客(https://www.lowendtalk.com)"
+        echo "   4) 高清壁纸站(https://bing.imeizi.me)"
         echo "   5) 自定义反代站点(需以http或者https开头)"
-        read -p "  请选择伪装网站类型[默认:美女站]" answer
+        read -p "  请选择伪装网站类型[默认:高清壁纸站]" answer
         if [[ -z "$answer" ]]; then
-            PROXY_URL="https://imeizi.me"
+            PROXY_URL="https://bing.imeizi.me"
         else
             case $answer in
             1)
@@ -433,7 +436,7 @@ getData() {
                 PROXY_URL="https://imeizi.me"
                 ;;
             4)
-                PROXY_URL="https://www.lowendtalk.com"
+                PROXY_URL="https://bing.imeizi.me"
                 ;;
             5)
                 read -p " 请输入反代站点(以http或者https开头)：" PROXY_URL
@@ -548,21 +551,22 @@ getCert() {
             systemctl start cron
             systemctl enable cron
         fi
-        curl -sL https://get.acme.sh | sh
+        curl -sL https://get.acme.sh | sh -s email=hijk.pw@protonmail.sh
         source ~/.bashrc
         ~/.acme.sh/acme.sh  --upgrade  --auto-upgrade
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
         if [[ "$BT" = "false" ]]; then
-            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --pre-hook "systemctl stop nginx" --post-hook "systemctl restart nginx"  --standalone
+            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --keylength ec-256 --pre-hook "systemctl stop nginx" --post-hook "systemctl restart nginx"  --standalone
         else
-            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --pre-hook "nginx -s stop || { echo -n ''; }" --post-hook "nginx -c /www/server/nginx/conf/nginx.conf || { echo -n ''; }"  --standalone
+            ~/.acme.sh/acme.sh   --issue -d $DOMAIN --keylength ec-256 --pre-hook "nginx -s stop || { echo -n ''; }" --post-hook "nginx -c /www/server/nginx/conf/nginx.conf || { echo -n ''; }"  --standalone
         fi
-        [[ -f ~/.acme.sh/$DOMAIN/ca.cer ]] || {
+        [[ -f ~/.acme.sh/${DOMAIN}_ecc/ca.cer ]] || {
             colorEcho $RED " 获取证书失败，请复制上面的红色文字到 https://hijk.art 反馈"
             exit 1
         }
         CERT_FILE="/usr/local/etc/xray/${DOMAIN}.pem"
         KEY_FILE="/usr/local/etc/xray/${DOMAIN}.key"
-        ~/.acme.sh/acme.sh  --install-cert -d $DOMAIN \
+        ~/.acme.sh/acme.sh  --install-cert -d $DOMAIN --ecc \
             --key-file       $KEY_FILE  \
             --fullchain-file $CERT_FILE \
             --reloadcmd     "service nginx force-reload"
@@ -908,16 +912,7 @@ trojanConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -968,16 +963,7 @@ trojanXTLSConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1007,16 +993,7 @@ vmessConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1058,16 +1035,7 @@ vmessKCPConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1111,16 +1079,7 @@ vmessTLSConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1160,16 +1119,7 @@ vmessWSConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1222,16 +1172,7 @@ vlessTLSConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1285,16 +1226,7 @@ vlessXTLSConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1334,16 +1266,7 @@ vlessWSConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1386,16 +1309,7 @@ vlessKCPConfig() {
     "protocol": "blackhole",
     "settings": {},
     "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
+  }]
 }
 EOF
 }
@@ -1745,7 +1659,7 @@ outputVmessTLS() {
     echo -e "   ${BLUE}额外id(alterid)：${PLAIN} ${RED}${alterid}${PLAIN}"
     echo -e "   ${BLUE}加密方式(security)：${PLAIN} ${RED}none${PLAIN}"
     echo -e "   ${BLUE}传输协议(network)：${PLAIN} ${RED}${network}${PLAIN}" 
-    echo -e "   ${BLUE}伪装域名/主机名(host)：${PLAIN}${RED}${domain}${PLAIN}"
+    echo -e "   ${BLUE}伪装域名/主机名(host)/SNI/peer名称：${PLAIN}${RED}${domain}${PLAIN}"
     echo -e "   ${BLUE}底层安全传输(tls)：${PLAIN}${RED}TLS${PLAIN}"
     echo  
     echo -e "   ${BLUE}vmess链接: ${PLAIN}$RED$link$PLAIN"
@@ -1775,7 +1689,7 @@ outputVmessWS() {
     echo -e "   ${BLUE}加密方式(security)：${PLAIN} ${RED}none${PLAIN}"
     echo -e "   ${BLUE}传输协议(network)：${PLAIN} ${RED}${network}${PLAIN}" 
     echo -e "   ${BLUE}伪装类型(type)：${PLAIN}${RED}none$PLAIN"
-    echo -e "   ${BLUE}伪装域名/主机名(host)：${PLAIN}${RED}${domain}${PLAIN}"
+    echo -e "   ${BLUE}伪装域名/主机名(host)/SNI/peer名称：${PLAIN}${RED}${domain}${PLAIN}"
     echo -e "   ${BLUE}路径(path)：${PLAIN}${RED}${wspath}${PLAIN}"
     echo -e "   ${BLUE}底层安全传输(tls)：${PLAIN}${RED}TLS${PLAIN}"
     echo  
@@ -1833,7 +1747,7 @@ showInfo() {
             echo -e " ${BLUE}加密(encryption)：${PLAIN} ${RED}none${PLAIN}"
             echo -e " ${BLUE}传输协议(network)：${PLAIN} ${RED}${network}${PLAIN}" 
             echo -e " ${BLUE}伪装类型(type)：${PLAIN}${RED}none$PLAIN"
-            echo -e " ${BLUE}伪装域名/主机名(host)：${PLAIN}${RED}${domain}${PLAIN}"
+            echo -e " ${BLUE}伪装域名/主机名(host)/SNI/peer名称：${PLAIN}${RED}${domain}${PLAIN}"
             echo -e " ${BLUE}底层安全传输(tls)：${PLAIN}${RED}XTLS${PLAIN}"
         elif [[ "$ws" = "false" ]]; then
             echo -e " ${BLUE}IP(address):  ${PLAIN}${RED}${IP}${PLAIN}"
@@ -1843,7 +1757,7 @@ showInfo() {
             echo -e " ${BLUE}加密(encryption)：${PLAIN} ${RED}none${PLAIN}"
             echo -e " ${BLUE}传输协议(network)：${PLAIN} ${RED}${network}${PLAIN}" 
             echo -e " ${BLUE}伪装类型(type)：${PLAIN}${RED}none$PLAIN"
-            echo -e " ${BLUE}伪装域名/主机名(host)：${PLAIN}${RED}${domain}${PLAIN}"
+            echo -e " ${BLUE}伪装域名/主机名(host)/SNI/peer名称：${PLAIN}${RED}${domain}${PLAIN}"
             echo -e " ${BLUE}底层安全传输(tls)：${PLAIN}${RED}TLS${PLAIN}"
         else
             echo -e " ${BLUE}IP(address): ${PLAIN} ${RED}${IP}${PLAIN}"
@@ -1853,7 +1767,7 @@ showInfo() {
             echo -e " ${BLUE}加密(encryption)：${PLAIN} ${RED}none${PLAIN}"
             echo -e " ${BLUE}传输协议(network)：${PLAIN} ${RED}${network}${PLAIN}" 
             echo -e " ${BLUE}伪装类型(type)：${PLAIN}${RED}none$PLAIN"
-            echo -e " ${BLUE}伪装域名/主机名(host)：${PLAIN}${RED}${domain}${PLAIN}"
+            echo -e " ${BLUE}伪装域名/主机名(host)/SNI/peer名称：${PLAIN}${RED}${domain}${PLAIN}"
             echo -e " ${BLUE}路径(path)：${PLAIN}${RED}${wspath}${PLAIN}"
             echo -e " ${BLUE}底层安全传输(tls)：${PLAIN}${RED}TLS${PLAIN}"
         fi
